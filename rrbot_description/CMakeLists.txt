@@ -13,3 +13,8 @@ install(DIRECTORY meshes
 
 install(DIRECTORY urdf
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+install(PROGRAMS
+   nodes/publish_root_tf
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

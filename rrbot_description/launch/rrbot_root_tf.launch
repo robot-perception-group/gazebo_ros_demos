@@ -1,0 +1,6 @@
+<launch>
+  <!-- Combine joint values -->
+  <node ns="rrbot" name="root_tf_publisher" pkg="rrbot_description" type="publish_root_tf"/>
+
+
+</launch>
