@@ -1,7 +1,7 @@
 # Gazebo ROS Demos
 
 * Original Author: Dave Coleman <davetcoleman@gmail.com>
-* Modified: Eric Price <eric.price@ifr.uni-stuttgart.de>
+* Modified by: Eric Price <eric.price@ifr.uni-stuttgart.de>
 * License: GNU General Public License, version 3 (GPL-3.0)
 
 Example robots and code for interfacing Gazebo with ROS -- multicopter edition
