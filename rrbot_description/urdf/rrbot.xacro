@@ -257,10 +257,24 @@
     </joint>
     <xacro:motor_with_propeller_right name="motor0" />
 
-    <joint name="bar_motor1_joint" type="fixed">
+    <joint name="bar_motor2_joint" type="fixed">
         <parent link="bar1"/>
         <origin xyz="-0.18 0 0.02" rpy="0 0 0"/>
+        <child link="motor2_link"/>
+    </joint>
+    <xacro:motor_with_propeller_right name="motor2" />
+
+    <joint name="bar_motor1_joint" type="fixed">
+        <parent link="bar0"/>
+        <origin xyz="0.18 0 0.02" rpy="0 0 0"/>
         <child link="motor1_link"/>
     </joint>
     <xacro:motor_with_propeller_left name="motor1" />
+
+    <joint name="bar_motor3_joint" type="fixed">
+        <parent link="bar0"/>
+        <origin xyz="-0.18 0 0.02" rpy="0 0 0"/>
+        <child link="motor3_link"/>
+    </joint>
+    <xacro:motor_with_propeller_left name="motor3" />
 </robot>

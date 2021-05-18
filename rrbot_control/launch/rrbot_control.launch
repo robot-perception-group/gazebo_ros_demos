@@ -8,6 +8,8 @@
 	output="screen" ns="/rrbot" args="joint_state_controller
 					  motor0_velocity_controller
                                           motor1_velocity_controller
+                                          motor2_velocity_controller
+                                          motor3_velocity_controller
 "/>
 
   <!-- convert joint states to TF transforms for rviz, etc -->
