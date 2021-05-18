@@ -31,6 +31,13 @@
 
   <include file="$(find rrbot_description)/launch/rrbot_root_tf.launch" />
 
-  <include file="$(find rrbot_gazebo)/launch/rrbot_rviz.launch" />
+  <!--include file="$(find rrbot_gazebo)/launch/rrbot_rviz.launch" /-->
+  <node ns="/rrbot" name="left_stick" pkg="rqt_virtual_joy" type="rqt_virtual_joy" respawn="false" output="screen">
+    <remap from="/joy" to="left_stick" />
+  </node>
+  <node ns="/rrbot" name="right_stick" pkg="rqt_virtual_joy" type="rqt_virtual_joy" respawn="false" output="screen">
+    <remap from="/joy" to="right_stick" />
+  </node>
+  <node ns="/rrbot" name="manual_control" pkg="rrbot_description" type="remote_controller" respawn="false" output="screen" />
 
 </launch>

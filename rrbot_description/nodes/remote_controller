@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+import rospy
+
+import sensor_msgs.msg
+import std_msgs.msg
+
+throttle=0.0
+pitch=0.0
+roll=0.0
+yaw=0.0
+pub=[]
+
+def handle_stick(msg,which):
+    global throttle,pitch,roll,yaw,pub
+    if which==0:
+        yaw=-msg.axes[0]
+        throttle=0.5*(msg.axes[1]+1.0)
+    else:
+        roll=-msg.axes[0]
+        pitch=-msg.axes[1]
+
+    throttle_factor=400.
+    roll_factor=50.
+    pitch_factor=50.
+    yaw_factor=50.
+    motors=[0.,0.,0.,0.]
+
+    motors[0]=1.0*throttle*throttle_factor + -1.0*pitch*pitch_factor + -1.0*roll*roll_factor + -1.0*yaw*yaw_factor
+    motors[1]=1.0*throttle*throttle_factor + -1.0*pitch*pitch_factor + 1.0*roll*roll_factor + 1.0*yaw*yaw_factor
+    motors[2]=1.0*throttle*throttle_factor + 1.0*pitch*pitch_factor + 1.0*roll*roll_factor + -1.0*yaw*yaw_factor
+    motors[3]=1.0*throttle*throttle_factor + 1.0*pitch*pitch_factor + -1.0*roll*roll_factor + 1.0*yaw*yaw_factor
+
+    pub[0].publish(motors[0])
+    pub[1].publish(motors[1])
+    pub[2].publish(motors[2])
+    pub[3].publish(motors[3])
+
+
+
+
+
+if __name__ == '__main__':
+    print("test")
+    rospy.init_node('remote_controller')
+    rospy.Subscriber('left_stick',
+                     sensor_msgs.msg.Joy,
+                     handle_stick,0)
+    rospy.Subscriber('right_stick',
+                     sensor_msgs.msg.Joy,
+                     handle_stick,1)
+    pub.append(rospy.Publisher('motor0_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
+    pub.append(rospy.Publisher('motor1_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
+    pub.append(rospy.Publisher('motor2_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
+    pub.append(rospy.Publisher('motor3_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
+    rospy.spin()
