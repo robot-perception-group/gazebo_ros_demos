@@ -16,11 +16,74 @@
             <robotNamespace>${namespace}</robotNamespace>
             <frameName>world</frameName>
             <alwaysOn>true</alwaysOn>
-            <bodyName>dummyroot</bodyName>
+            <bodyName>FC</bodyName>
             <topicName>position_groundtruth</topicName>
             <gaussianNoise>0.00</gaussianNoise>
-            <updateRate>30.0</updateRate>
+            <updateRate>100.0</updateRate>
         </plugin>
+        <plugin name="quadrotor_imu_gt" filename="libhector_gazebo_ros_imu.so">
+            <robotNamespace>${namespace}</robotNamespace>
+            <updateRate>100.0</updateRate>
+            <frameId>world</frameId>
+            <bodyName>FC</bodyName>
+            <topicName>imu_groundtruth</topicName>
+            <rpyOffset>0 0 0</rpyOffset> <!-- deprecated -->
+            <gaussianNoise>0</gaussianNoise>  <!-- deprecated -->
+            <accelDrift>0 0 0</accelDrift>
+            <accelGaussianNoise>0 0 0</accelGaussianNoise>
+            <rateDrift>0 0 0</rateDrift>
+            <rateGaussianNoise>0 0 0</rateGaussianNoise>
+        </plugin>
+        <plugin name="quadrotor_imu_sim" filename="libhector_gazebo_ros_imu.so">
+            <robotNamespace>${namespace}</robotNamespace>
+            <updateRate>100.0</updateRate>
+            <frameId>world</frameId>
+            <bodyName>FC</bodyName>
+            <topicName>sim_imu</topicName>
+            <rpyOffset>0 0 0</rpyOffset> <!-- deprecated -->
+            <gaussianNoise>0</gaussianNoise>  <!-- deprecated -->
+            <accelDrift>0.05 0.05 0.05</accelDrift>
+            <accelGaussianNoise>0.35 0.35 0.3</accelGaussianNoise>
+            <rateDrift>0.1 0.1 0.1</rateDrift>
+            <rateGaussianNoise>0.05 0.05 0.015</rateGaussianNoise>
+        </plugin>
+        <plugin name="quadrotor_baro_sim" filename="libhector_gazebo_ros_baro.so">
+            <robotNamespace>${namespace}</robotNamespace>
+            <updateRate>10.0</updateRate>
+            <bodyName>FC</bodyName>
+            <frameId>world</frameId>
+            <topicName>sim_barometer</topicName>
+            <altimeterTopicName>sim_altimeter</altimeterTopicName>
+            <offset>0</offset>
+            <drift>10.0</drift>
+            <gaussianNoise>0.1</gaussianNoise>
+        </plugin>
+
+        <plugin name="quadrotor_magnetic_sim" filename="libhector_gazebo_ros_magnetic.so">
+            <robotNamespace>${namespace}</robotNamespace>
+            <updateRate>10.0</updateRate>
+            <bodyName>FC</bodyName>
+            <frameId>world</frameId>
+            <topicName>sim_magnetometer</topicName>
+            <offset>0 0 0</offset>
+            <drift>0.0 0.0 0.0</drift>
+            <gaussianNoise>1.3e-2 1.3e-2 1.3e-2</gaussianNoise>
+        </plugin>
+        <plugin name="quadrotor_gps_sim" filename="libhector_gazebo_ros_gps.so">
+            <robotNamespace>${namespace}</robotNamespace>
+            <updateRate>5.0</updateRate>
+            <bodyName>FC</bodyName>
+            <frameId>world</frameId>
+            <topicName>sim_gps_fix</topicName>
+            <velocityTopicName>sim_gps_vel</velocityTopicName>
+            <referenceLatitude>48.75</referenceLatitude>
+            <referenceLongitude>9.105</referenceLongitude>
+            <drift>5.0 5.0 5.0</drift>
+            <gaussianNoise>0.01 0.01 0.01</gaussianNoise>
+            <velocityDrift>0 0 0</velocityDrift>
+            <velocityGaussianNoise>0.05 0.05 0.05</velocityGaussianNoise>
+          </plugin>
+
     </gazebo>
 
     <xacro:macro name="gazebo_mat_color" params="color">
@@ -226,21 +289,31 @@
 
     <!-- dummy root link used for a vehicle that is not glued to the world map-->
     <link name="dummyroot" />
-    <joint name="dummyrootjoint" type="fixed">
-        <parent link="dummyroot"/>
-        <child link="bar0"/>
-    </joint>
-
 
     <!-- actual vehicle definition is here, using macros -->
+    <!-- flight controller - base for the sensors -->
+    <!-- 2 red bars 90 degrees to each other -->
+    <xacro:box_base_link name="FC" m="0.002" x="0.05" y="0.05" z="0.005" mat="Black">
+        <nothing/>
+    </xacro:box_base_link>
+    <joint name="FC_joint" type="fixed">
+        <parent link="dummyroot"/>
+        <origin xyz="0 0 0.01" rpy="0 0 0"/>
+        <child link="FC"/>
+    </joint>
 
     <!-- 2 red bars 90 degrees to each other -->
+    <joint name="dummyrootjoint" type="fixed">
+        <parent link="dummyroot"/>
+        <origin xyz="0 0 0" rpy="0 0 ${-PI/4}"/>
+        <child link="bar0"/>
+    </joint>
     <xacro:box_base_link name="bar0" m="0.1" x="0.4" y="0.01" z="0.01" mat="Red">
         <nothing/>
     </xacro:box_base_link>
     <joint name="bar_joint" type="fixed">
-        <parent link="bar0"/>
-        <origin xyz="0 0 0" rpy="0 0 ${PI/2}"/>
+        <parent link="dummyroot"/>
+        <origin xyz="0 0 0" rpy="0 0 ${PI/4}"/>
         <child link="bar1"/>
     </joint>
     <xacro:box_base_link name="bar1" m="0.1" x="0.4" y="0.01" z="0.01" mat="Red">
