@@ -25,6 +25,8 @@ OPI_lim=np.array([0.05,0.05,0.1])
 MIX=np.array([[-1,-1,-1,1],[1,-1,1,1],[1,1,-1,1],[-1,1,1,1]],dtype=float)
 max_rpm=400
 vel=np.array([0.,0.,0.])
+pos=np.array([0.,0.,0.])
+current_waypoint=0
 
 def handle_stick(msg,which):
     global throttle,pitch,roll,yaw
@@ -36,17 +38,29 @@ def handle_stick(msg,which):
         pitch=-msg.axes[1]
 
 def handle_odo(msg):
-    global vel
+    global pos,vel
     vel[0]=msg.twist.twist.linear.x
     vel[1]=msg.twist.twist.linear.y
     vel[2]=-msg.twist.twist.linear.z
+    pos[0]=msg.pose.pose.position.x
+    pos[1]=msg.pose.pose.position.y
+    pos[2]=-msg.pose.pose.position.z
 
 def handle_imu(msg):
-    global PI_i,PI_kp,PI_ki,PI_lim,MIX,max_rpm,roll,pitch,yaw,throttle,vel,pub,OPI_i,OPI_kp,OPI_ki,OPI_lim
+    global PI_i,PI_kp,PI_ki,PI_lim,MIX,max_rpm,roll,pitch,yaw,throttle,vel,pub,OPI_i,OPI_kp,OPI_ki,OPI_lim,current_waypoint,pos
     q=msg.orientation
     (r,p,y) = tf.transformations.euler_from_quaternion([q.x,q.y,q.z,q.w])
     r=-r # Gazebo coordinate system is oddly inverted
     y=-y
+
+    waypoints=np.array([[0.,0.,-2.],[3.,0.,-2.],[3.,3.,-2.],[0.,3.,-2]])
+
+    if np.linalg.norm( waypoints[current_waypoint] - pos )<0.5:
+        current_waypoint = (current_waypoint + 1) % 4
+
+    VelKp = 2.0
+    VelMax = 2.0
+    VelS = np.clip( VelKp * ( waypoints[current_waypoint] - pos), -VelMax, VelMax)
 
     x_max=2.0
     y_max=-2.0
@@ -54,7 +68,8 @@ def handle_imu(msg):
     hover_thrust=0.7
 
     SetpointsO=np.array([x_max*roll,y_max*pitch,z_max*((2.0*throttle)-1)])
-    Eo=SetpointsO-vel
+    #Eo=SetpointsO-vel
+    Eo=VelS-vel
     Po=Eo*OPI_kp
     OPI_i=np.clip( OPI_i + Eo * OPI_ki, -OPI_lim, OPI_lim)
     Oo = np.clip(Po+OPI_i,-1,1)
