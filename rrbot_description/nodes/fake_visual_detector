@@ -1,0 +1,154 @@
+#!/usr/bin/env python
+import rospy
+
+import geometry_msgs.msg
+import nav_msgs.msg
+import numpy as np
+import tf
+import math
+import sys
+
+global campos,camdir,tarpos
+campos=None
+camdir=None
+tarpos=None
+
+def qv_mult(q1,v1):
+    q2 = list(v1)
+    q2.append(0.0)
+    return tf.transformations.quaternion_multiply(
+        tf.transformations.quaternion_multiply(q1, q2), 
+        tf.transformations.quaternion_conjugate(q1)
+    )[:3]
+
+
+def qv_inv(q1):
+    q2=q1*1.0
+    q2[:3]*=-1
+    return q2
+
+def handle_camera(msg):
+    global campos,camdir
+    offset=np.array([0.,0.,0.])
+    if rospy.has_param("camera/X"):
+        offset[0]=rospy.get_param("camera/X")
+    if rospy.has_param("camera/Y"):
+        offset[1]=rospy.get_param("camera/Y")
+    if rospy.has_param("camera/Z"):
+        offset[2]=rospy.get_param("camera/Z")
+
+    direction=np.array([0.,0.,0.])
+    if rospy.has_param("camera/roll"):
+        direction[0]=rospy.get_param("camera/roll")
+    if rospy.has_param("camera/pitch"):
+        direction[1]=rospy.get_param("camera/pitch")
+    if rospy.has_param("camera/yaw"):
+        direction[2]=rospy.get_param("camera/yaw")
+
+    o=msg.pose.pose.orientation
+    q1=np.array([o.x,o.y,o.z,o.w])
+
+    p=msg.pose.pose.position
+    campos=np.array([p.x,p.y,p.z]) + qv_mult(q1,offset)
+
+    q2=tf.transformations.quaternion_from_euler(direction[0],direction[1],direction[2])
+
+    camdir=tf.transformations.quaternion_multiply(q2,q1)
+
+def handle_target(msg):
+    global tarpos
+    p=msg.pose.pose.position
+    tarpos=np.array([p.x,p.y,p.z])
+
+
+def make_detection():
+    global tarpos,campos,camdir
+
+    pos = tarpos - campos
+    pos = qv_mult(qv_inv(camdir),pos)
+
+    #print(pos)
+    if pos[0]<=0:
+        # object behind camera
+        return None
+    else:
+        size=np.array([640.,480.])
+        if rospy.has_param("camera/SizeX"):
+            size[0]=rospy.get_param("camera/SizeX")
+        if rospy.has_param("camera/SizeY"):
+            size[1]=rospy.get_param("camera/SizeY")
+        pp=size*0.5
+        if rospy.has_param("camera/PPX"):
+            pp[0]=rospy.get_param("camera/PPX")
+        if rospy.has_param("camera/PPY"):
+            pp[1]=rospy.get_param("camera/PPY")
+        f=100.0
+        if rospy.has_param("camera/f"):
+            f=rospy.get_param("camera/f")
+
+        u=(-f*pos[1]/pos[0])+pp[0]
+        v=(-f*pos[2]/pos[0])+pp[1]
+        if (u<0 or v<0 or u>=size[0] or v>=size[1]):
+            # object outside of camera FOV
+            return None
+
+        #noise
+        sigma=np.array([0.5,0.5,0.01])
+        if rospy.has_param("camera/SigmaX"):
+            sigma[0]=rospy.get_param("camera/SigmaX")
+        if rospy.has_param("camera/SigmaY"):
+            sigma[1]=rospy.get_param("camera/SigmaY")
+        if rospy.has_param("camera/SigmaZ"):
+            sigma[2]=rospy.get_param("camera/SigmaZ")
+        u=int(u+np.random.normal(scale=sigma[0])+0.5)
+        v=int(v+np.random.normal(scale=sigma[1])+0.5)
+
+        msg=geometry_msgs.msg.PointStamped()
+        msg.header.stamp = rospy.Time.now()
+        msg.header.frame_id="world"
+        d=1.0
+        if rospy.has_param("camera/DepthFactor"):
+            d=rospy.get_param("camera/DepthFactor")
+        msg.point.z=d*(math.sqrt(pos[0]**2+pos[1]**2+pos[2]**2)+np.random.normal(scale=sigma[2]))
+        msg.point.x=float(u)
+        msg.point.y=float(v)
+        return msg
+
+
+if __name__ == '__main__':
+    rospy.init_node('camera')
+    pub=rospy.Publisher('fake_detection',geometry_msgs.msg.PointStamped, queue_size=3)
+
+    # assume camera at 0,0,0 if camera is never received
+    msg=nav_msgs.msg.Odometry()
+    msg.pose.pose.position.x=0.0
+    msg.pose.pose.position.y=0.0
+    msg.pose.pose.position.z=0.0
+    msg.pose.pose.orientation.x=0.0
+    msg.pose.pose.orientation.y=0.0
+    msg.pose.pose.orientation.z=0.0
+    msg.pose.pose.orientation.w=1.0
+    handle_camera(msg)
+
+    rospy.Subscriber('camera',
+                     nav_msgs.msg.Odometry,
+                     handle_camera)
+    rospy.Subscriber('target',
+                     nav_msgs.msg.Odometry,
+                     handle_target)
+
+    rate = 10.0
+    if rospy.has_param("camera/rate"):
+        rate=rospy.get_param("camera/rate")
+
+    r = rospy.Rate(rate)
+    while not rospy.is_shutdown():
+        msg=None
+        if tarpos is not None:
+            msg=make_detection()
+        # delayed publishing - but with correct timestamp
+        # simulate detection processing time
+        r.sleep()
+        if msg is not None:
+            pub.publish(msg)
+

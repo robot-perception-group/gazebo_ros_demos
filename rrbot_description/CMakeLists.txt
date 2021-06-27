@@ -16,5 +16,7 @@ install(DIRECTORY urdf
 
 install(PROGRAMS
    nodes/publish_root_tf
+   nodes/remote_controller
+   nodes/fake_visual_detector
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
