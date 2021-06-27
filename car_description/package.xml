@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>car_description</name>
+  <version>0.0.0</version>
+  <description>The car_description package</description>
+
+  <maintainer email="eric.price@ifr.uni-stuttgart.de">Eric Price</maintainer>
+
+  <license>GPL-3</license>
+
+  <author email="eric.price@ifr.uni-stuttgart.de">Eric Price</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>joint_state_publisher</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>hector_gazebo_plugins</run_depend>
+
+  <export>
+  </export>
+</package>

@@ -1,0 +1,245 @@
+<?xml version="1.0"?>
+<!-- Revolute-Revolute Manipulator -->
+<robot name="car" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- Constants for robot dimensions -->
+    <xacro:property name="namespace" value="/car"/>
+    <xacro:property name="PI" value="3.1415926535897931"/>
+
+    <!-- ros_control plugin -->
+    <gazebo>
+        <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+            <robotNamespace>${namespace}</robotNamespace>
+            <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+        </plugin>
+        <plugin name="car_groundtruth" filename="libgazebo_ros_p3d.so">
+            <robotNamespace>${namespace}</robotNamespace>
+            <frameName>world</frameName>
+            <alwaysOn>true</alwaysOn>
+            <bodyName>FC</bodyName>
+            <topicName>position_groundtruth</topicName>
+            <gaussianNoise>0.00</gaussianNoise>
+            <updateRate>100.0</updateRate>
+        </plugin>
+
+    </gazebo>
+
+    <xacro:macro name="gazebo_mat_color" params="color">
+        <material>Gazebo/${color}</material>
+    </xacro:macro>
+    <material name="Black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+    </material>
+    <material name="Blue">
+        <color rgba="0.0 0.0 0.8 1.0"/>
+    </material>
+    <material name="Green">
+        <color rgba="0.0 0.8 0.0 1.0"/>
+    </material>
+    <material name="Grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+    </material>
+    <material name="Orange">
+        <color rgba="${255/255} ${108/255} ${10/255} 1.0"/>
+    </material>
+    <material name="Brown">
+        <color rgba="${222/255} ${207/255} ${195/255} 1.0"/>
+    </material>
+    <material name="Red">
+        <color rgba="0.8 0.0 0.0 1.0"/>
+    </material>
+    <material name="White">
+        <color rgba="1.0 1.0 1.0 1.0"/>
+    </material>
+
+    <!-- A primitive for a box -->
+    <xacro:macro name="box_base_link" params="name m x y z mat **gaz_extra">
+        <link name="${name}">
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <box size="${x} ${y} ${z}"/>
+                </geometry>
+            </collision>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <box size="${x} ${y} ${z}"/>
+                </geometry>
+                <material name="${mat}"/>
+            </visual>
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="${m}"/>
+                <inertia
+                    ixx="${(m / 12.0) * (y*y + z*z)}" ixy="0.0" ixz="0.0"
+                    iyy="${(m / 12.0) * (x*x + z*z)}" iyz="0.0"
+                    izz="${(m / 12.0) * (x*x + y*y)}" />
+            </inertial>
+        </link>
+        <gazebo reference="${name}">
+            <xacro:gazebo_mat_color color="${mat}" />
+            <mu1>0.2</mu1>
+            <mu2>0.2</mu2>
+        </gazebo>
+        <xacro:insert_block name="gaz_extra" />
+    </xacro:macro>
+
+    <!-- A primitive for a cylinder -->
+    <xacro:macro name="cylinder_base_link" params="name m l r mat">
+        <link name="${name}">
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <cylinder length="${l}" radius="${r}" />
+                </geometry>
+            </collision>
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <cylinder length="${l}" radius="${r}" />
+                </geometry>
+                <material name="${mat}"/>
+            </visual>
+            <inertial>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <mass value="${m}"/>
+                <inertia
+                    ixx="${(m / 12.0) * (3*r*r + l*l)}" ixy="0.0" ixz="0.0"
+                    iyy="${(m / 12.0) * (3*r*r + l*l)}" iyz="0.0"
+                    izz="${(m / 2) * (r*r)}" />
+            </inertial>
+        </link>
+        <gazebo reference="${name}">
+            <xacro:gazebo_mat_color color="${mat}" />
+            <mu1>0.2</mu1>
+            <mu2>0.2</mu2>
+        </gazebo>
+        <!--xacro:insert_block name="gaz_extra" /-->
+    </xacro:macro>
+
+    <!-- Right and left turning motors including propellers - templates -->
+    <xacro:macro name="motor_with_wheel_left" params="name">
+        <xacro:cylinder_base_link name="${name}_link" m="0.05" r="0.03" l="0.03" mat="Black" />
+        <joint name="${name}" type="continuous">
+            <limit effort="100" velocity="1000" />
+            <dynamics damping="0.0001" friction="0.01" />
+            <parent link="${name}_link"/>
+            <origin xyz="0 0 0.025" rpy="0 0 0"/>
+            <axis xyz="0 0 1" />
+            <child link="${name}_axle"/>
+        </joint>
+        <transmission name="${name}_trans">
+            <type>transmission_interface/SimpleTransmission</type>
+            <joint name="${name}">
+                <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            </joint>
+            <actuator name="${name}">
+                <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+                <mechanicalReduction>1</mechanicalReduction>
+            </actuator>
+            </transmission>
+        <xacro:cylinder_base_link name="${name}_axle" m="0.05" r="0.003" l="0.019" mat="Orange" />
+        <joint name="${name}_blade1_joint" type="revolute">
+            <!-- this must be a revolute joint due to a simulator bug. it does not actually move -->
+            <limit effort="1000" velocity="0" lower="0" upper="0" />
+            <parent link="${name}_axle" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <axis xyz="0 0 1" />
+            <child link="${name}_wheel"/>
+        </joint>
+        <xacro:cylinder_base_link name="${name}_wheel" m="0.1" r="0.1" l="0.005" mat="Orange" />
+    </xacro:macro>
+    <xacro:macro name="motor_with_wheel_right" params="name">
+        <xacro:cylinder_base_link name="${name}_link" m="0.05" r="0.03" l="0.03" mat="Black" />
+        <joint name="${name}" type="continuous">
+            <limit effort="100" velocity="1000" />
+            <dynamics damping="0.0001" friction="0.01" />
+            <parent link="${name}_link"/>
+            <origin xyz="0 0 0.025" rpy="${PI} 0 0"/><!-- note: rotated 180 deg to force reverse rotation -->
+            <axis xyz="0 0 1" />
+            <child link="${name}_axle"/>
+        </joint>
+        <transmission name="${name}_trans">
+            <type>transmission_interface/SimpleTransmission</type>
+            <joint name="${name}">
+                <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            </joint>
+            <actuator name="${name}">
+                <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+                <mechanicalReduction>1</mechanicalReduction>
+            </actuator>
+            </transmission>
+        <xacro:cylinder_base_link name="${name}_axle" m="0.05" r="0.003" l="0.019" mat="Orange" />
+        <joint name="${name}_blade1_joint" type="revolute">
+            <!-- this must be a revolute joint due to a simulator bug. it does not actually move -->
+            <limit effort="1000" velocity="0" lower="0" upper="0" />
+            <parent link="${name}_axle" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <axis xyz="0 0 1" />
+            <child link="${name}_wheel"/>
+        </joint>
+        <xacro:cylinder_base_link name="${name}_wheel" m="0.1" r="0.1" l="0.005" mat="Green" />
+    </xacro:macro>
+
+    <!-- dummy root link used for a vehicle that is not glued to the world map-->
+    <link name="dummyroot" />
+
+    <!-- actual vehicle definition is here, using macros -->
+    <!-- flight controller - base for the sensors -->
+    <!-- 2 red bars 90 degrees to each other -->
+    <xacro:box_base_link name="FC" m="0.002" x="0.05" y="0.05" z="0.005" mat="Black">
+        <nothing/>
+    </xacro:box_base_link>
+    <joint name="FC_joint" type="fixed">
+        <parent link="dummyroot"/>
+        <origin xyz="0 0 0.01" rpy="0 0 0"/>
+        <child link="FC"/>
+    </joint>
+
+    <!-- 2 red bars 90 degrees to each other -->
+    <joint name="dummyrootjoint" type="fixed">
+        <parent link="dummyroot"/>
+        <origin xyz="0 0 0" rpy="0 0 ${-PI/4}"/>
+        <child link="bar0"/>
+    </joint>
+    <xacro:box_base_link name="bar0" m="0.1" x="0.4" y="0.01" z="0.01" mat="Red">
+        <nothing/>
+    </xacro:box_base_link>
+    <joint name="bar_joint" type="fixed">
+        <parent link="dummyroot"/>
+        <origin xyz="0 0 0" rpy="0 0 ${PI/4}"/>
+        <child link="bar1"/>
+    </joint>
+    <xacro:box_base_link name="bar1" m="0.1" x="0.4" y="0.01" z="0.01" mat="Red">
+        <nothing/>
+    </xacro:box_base_link>
+
+    <!-- one motor of each type as example - please also check file:
+        < rrbot_control/config/rrbot_control.yaml >
+        where the motors are referenced for virtual engine controllers -->
+    <joint name="bar_motor0_joint" type="fixed">
+        <parent link="bar1"/>
+        <origin xyz="0.2 0 0" rpy="0 ${PI/2} ${PI/4}"/>
+        <child link="motor0_link"/>
+    </joint>
+    <xacro:motor_with_wheel_left name="motor0" />
+    <joint name="bar_motor2_joint" type="fixed">
+        <parent link="bar1"/>
+        <origin xyz="-0.2 0 0" rpy="0 ${-PI/2} ${PI/4}"/>
+        <child link="motor2_link"/>
+    </joint>
+    <xacro:motor_with_wheel_right name="motor2" />
+    <joint name="bar_motor1_joint" type="fixed">
+        <parent link="bar0"/>
+        <origin xyz="0.2 0 0" rpy="0 ${PI/2} ${-PI/4}"/>
+        <child link="motor1_link"/>
+    </joint>
+    <xacro:motor_with_wheel_right name="motor1" />
+    <joint name="bar_motor3_joint" type="fixed">
+        <parent link="bar0"/>
+        <origin xyz="-0.2 0 0" rpy="0 ${-PI/2} ${-PI/4}"/>
+        <child link="motor3_link"/>
+    </joint>
+    <xacro:motor_with_wheel_left name="motor3" />
+</robot>

@@ -103,6 +103,10 @@ def handle_imu(msg):
 
 if __name__ == '__main__':
     rospy.init_node('remote_controller')
+    pub.append(rospy.Publisher('motor0_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
+    pub.append(rospy.Publisher('motor1_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
+    pub.append(rospy.Publisher('motor2_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
+    pub.append(rospy.Publisher('motor3_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
     rospy.Subscriber('left_stick',
                      sensor_msgs.msg.Joy,
                      handle_stick,0)
@@ -115,8 +119,4 @@ if __name__ == '__main__':
     rospy.Subscriber('position_groundtruth',
                      nav_msgs.msg.Odometry,
                      handle_odo)
-    pub.append(rospy.Publisher('motor0_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
-    pub.append(rospy.Publisher('motor1_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
-    pub.append(rospy.Publisher('motor2_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
-    pub.append(rospy.Publisher('motor3_velocity_controller/command',std_msgs.msg.Float64, queue_size=3))
     rospy.spin()

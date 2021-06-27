@@ -20,13 +20,23 @@
   <!-- Load the URDF into the ROS Parameter Server -->
   <param name="robot_description"
     command="$(find xacro)/xacro --inorder '$(find rrbot_description)/urdf/rrbot.xacro'" />
+  
+  <param name="car_description"
+    command="$(find xacro)/xacro --inorder '$(find car_description)/urdf/car.xacro'" />
 
   <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
     args="-urdf -model rrbot -param robot_description"/>
 
+  <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+  <node name="urdf_spawner2" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+    args="-urdf -model car -param car_description -x 2 -y 2"/>
+
   <!-- ros_control rrbot launch file -->
   <include file="$(find rrbot_control)/launch/rrbot_control.launch" />
+
+  <!-- ros_control rrbot launch file -->
+  <include file="$(find car_control)/launch/car_control.launch" />
 
 
   <include file="$(find rrbot_description)/launch/rrbot_root_tf.launch" />
@@ -39,5 +49,7 @@
     <remap from="/joy" to="right_stick" />
   </node>
   <node ns="/rrbot" name="manual_control" pkg="rrbot_description" type="remote_controller" respawn="false" output="screen" />
+
+  <node ns="/car" name="manual_control" pkg="car_description" type="drive_car" respawn="false" output="screen" />
 
 </launch>

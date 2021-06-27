@@ -1,0 +1,23 @@
+car:
+  # Publish all joint states -----------------------------------
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 50  
+  
+  # Velocity Controllers ---------------------------------------
+  motor0_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: motor0
+    pid: {p: 0.001, i: 0.1, d: 0.0, i_clamp: 0.5, antiwindup: True}
+  motor1_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: motor1
+    pid: {p: 0.001, i: 0.1, d: 0.0, i_clamp: 0.5, antiwindup: True}
+  motor2_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: motor2
+    pid: {p: 0.001, i: 0.1, d: 0.0, i_clamp: 0.5, antiwindup: True}
+  motor3_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: motor3
+    pid: {p: 0.001, i: 0.1, d: 0.0, i_clamp: 0.5, antiwindup: True}
